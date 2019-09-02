@@ -1,0 +1,70 @@
+1)select emp_type,count(emp_id) as e from Employee group by emp_type ;
+2)
+	select e.emp_name,
+	sum(CASE WHEN a.att_status = 'P' then 1 else 0 end) as total_present_days,
+		sum(CASE WHEN a.att_status = 'A' then 1 else 0 end) as total_absent_day
+	 from Employee as e inner join Attendance as a on e.emp_id = a.emp_id group by emp_name;
+3)
+	select e.emp_name,
+	 sum(CASE WHEN a.att_status = 'A' then 1 else 0 end) as absent_days,
+	 case WHEN  sum(CASE WHEN a.att_status = 'A' then 1 else 0 end) > 1 THEN 'RED' ELSE 'BLUE' END as display_status
+ from Employee as e inner join Attendance as a on (e.emp_id = a.emp_id) and a.att_date > current_date - interval '15 days'  group by emp_name;
+
+4)
+
+select e.emp_name,
+sum(s.sal_paid_amount) as total_salary,
+	sum(s.sal_net_amount- s.sal_paid_amount) as yearly_deduction
+ from Employee as e inner join Salary as s on e.emp_id = s.emp_id 
+where s.sal_paid_date > current_date - interval '1 year' group by emp_name ;
+
+5)
+
+	SELECT sal.emp_name,sal.sal_paid_amount 
+FROM (
+      SELECT e.emp_name,s.sal_paid_amount,
+          DENSE_RANK() OVER (ORDER BY s.sal_paid_amount DESC) AS Rank 
+      FROM employee e left outer join salary s On e.emp_id = s.emp_id
+		where s.sal_date > current_date - interval '1 year'
+      ) as sal  
+WHERE sal.Rank = 2;
+
+//BY LIMIT 
+select e.emp_name,s.sal_paid_amount  
+	from employee e natural join
+	     salary s where s.sal_paid_amount=(
+SELECT sal_paid_amount amt FROM employee  NATURAL JOIN  salary
+GROUP BY sal_paid_amount ORDER BY sal_paid_amount DESC LIMIT 1 OFFSET 1)
+and sal_date > current_date - interval '1 year';
+
+
+6)
+
+select emp_name from employee e 
+natural join 
+(select e.emp_name  from Employee  e inner join review  r on e.emp_id = r.emp_id
+where r.review_date > current_date - interval '8 month' group by e.emp_id order by sum(r.review_rating) DESC) re
+natural join 
+(select e.emp_id
+ from employee e inner join Attendance a on e.emp_id = a.emp_id 
+where a.att_date > current_date - interval '1 month' group by e.emp_id
+having sum(case when a.att_status = 'A' then 1 else 0 end)= 0 ) at
+ LIMIT 1;
+
+7)
+select e.emp_name,s.sal_paid_amount 
+from employee e  natural join salary s
+where s.sal_paid_amount NOT BETWEEN 10000 AND 30000 AND s.sal_paid_amount NOT BETWEEN 40000 AND 75000 ;
+
+8)
+
+select e.emp_name,abs(b.salb - a.sala) as  salary_diff_in_last_two_month from employee e 
+natural join 
+(select s.emp_id,s.sal_net_amount as sala from salary s where s.sal_date > current_date - interval '1 month' AND s.sal_date < current_date) a
+
+natural join
+(select s.emp_id,s.sal_net_amount as salb  from salary s where s.sal_date > current_date - interval '2 month' AND s.sal_date < current_date - interval '1 month' ) b
+
+where abs(b.salb - a.sala) > 0 group by e.emp_name,abs(b.salb - a.sala);
+
+
